@@ -1,0 +1,100 @@
+/**
+ * Get the URL for the Google Apps Script running as a WebApp.
+ */
+function getScriptUrl() {
+  var url = ScriptApp.getService().getUrl();
+  return url;
+}
+
+
+function doGet(e) {
+
+  if (!e.parameter.page) {
+    Logger.log("sei in index.html");
+  var html= HtmlService.createTemplateFromFile('Index').evaluate().setSandboxMode(HtmlService.SandboxMode.IFRAME);
+    // When no specific page requested, return "home page"
+  }
+
+  else 
+  {
+  // else, use page parameter to pick an html file from the script
+    Logger.log("sei in form.html")
+  var html = HtmlService.createTemplateFromFile(e.parameter['page']).evaluate().setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  }
+  
+  return html
+}
+
+/*
+function doGet(request) {
+  return HtmlService.createTemplateFromFile('Index')
+      .evaluate();
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename)
+      .getContent();
+}
+*/
+
+// *****************  FUNZIONE PER CREARE LA RIGA TITOLO DELLA TABELLA *************
+
+function readHeaders(){
+Logger.log("readHeaders " + new Date())
+
+var dataRange= sheet.getDataRange() 
+var dataValues = dataRange.getValues()
+//var headers = data[0]
+var dataHeaders = []
+dataHeaders.push(dataValues[0][0])
+dataHeaders.push(dataValues[0][1])
+//convert array in an object for DataTables plugin
+var objectHeaders = []
+for (var i=1; i<dataHeaders.length-1; i++){
+  objectHeaders.push("{data: '"+headers[i]+"'}")
+}
+Logger.log(dataHeaders)
+return dataHeaders //al momento ritorna gli headers come array
+} 
+
+
+// *****************  LEGGE I DATI DALLO SHEET E RESTITUISCE UN OBJECT  *************
+
+function readData(){
+Logger.log("readData " + new Date())
+var rows = sheet.getLastRow()-2
+var cols = sheet.getLastColumn()-2
+var headers = sheet.getRange(1,1,1,cols).getValues()
+Logger.log(headers)
+var data = sheet.getRange(3,1,rows,cols).getValues()
+
+//Object con un Array di Objects
+var dataObjectsArray = [] // inizializza l'array di Objects
+for (var i=0; i<rows; i++){ // per ogni riga 
+var dataObjects = {} // inizializza un object
+  for (var j=0; j<cols; j++){ // per ogni colonna 
+  Object.defineProperty(dataObjects, headers[0][j], { // ne definisce le proprietà usando i nomi di colonna 
+    value: data[i][j], // e i valori usando i dati in tabella 
+    writable: true,
+    enumerable: true,
+    configurable: true
+    }); 
+  }  
+  // quando completa l'Object lo aggiunge all'array di Objects  
+    dataObjectsArray.push(dataObjects)
+}
+// quando completa l'array di Object costruisce l'oggetto Contenitore
+
+var mainObject = {
+      table: null,
+      init : function (){ // definisce un metodo 
+        mainObject.table = dataObjectsArray; // che assegna l'array di Objects alla proprietà "table" 
+        // una semplice assegnazione del valore alla proprietà non funzionava 
+      }
+    };
+    mainObject.init(); // aziona il metodo per assegnare l'array di Objects alla proprietà "table"
+    
+var JSONdata = JSON.stringify(mainObject)
+Logger.log(JSONdata)
+return mainObject // il risultato viene restituito come Object e non come JSON stringify
+}
